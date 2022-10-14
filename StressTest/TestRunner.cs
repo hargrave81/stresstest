@@ -9,8 +9,6 @@ namespace StressTest
 {
     internal class TestRunner      
     {
-        internal static HttpClient client;
-
         public List<ApiResult> results = new List<ApiResult>();
 
         public decimal AverageTime => results.Average(t => t.CallTime);
@@ -34,12 +32,11 @@ namespace StressTest
         private System.Diagnostics.Stopwatch stopWatch;
         internal bool exclude404 { get; set; }
         public TestRunner()
-        {
-            client = new HttpClient();
+        {            
             stopWatch = new System.Diagnostics.Stopwatch();
         }
 
-        public ApiResult CallAPIQuery(string endPoint, string Query, string token)
+        public ApiResult CallAPIQuery(HttpClient client, string endPoint, string Query, string token)
         {
             var result = new ApiResult() {EndPoint = endPoint };
             var timer = new System.Diagnostics.Stopwatch();            
@@ -65,7 +62,7 @@ namespace StressTest
             return result;
         }
 
-        public ApiResult CallAPIPayload(string endPoint, string payLoad, string token)
+        public ApiResult CallAPIPayload(HttpClient client, string endPoint, string payLoad, string token)
         {
             var result = new ApiResult() { EndPoint = endPoint };
             var timer = new System.Diagnostics.Stopwatch();
@@ -150,7 +147,7 @@ namespace StressTest
             stopWatch.Start();
             for (int thread = 0; thread < threads;thread ++)
             {
-                ThreadPool.QueueUserWorkItem(BackgroundTask, cancellationToken);
+                ThreadPool.QueueUserWorkItem(BackgroundTask, new object[] { cancellationToken, new HttpClient() } );
             }
             while(!cancellationToken)
             {
@@ -162,9 +159,10 @@ namespace StressTest
             
         }
 
-        private void BackgroundTask(Object stateInfo)
+        private void BackgroundTask(object stateInfo)
         {
-            bool cancelToken = (bool)stateInfo;
+            bool cancelToken = (bool)(stateInfo as Object[])[0];
+            HttpClient client = (HttpClient)(stateInfo as Object[])[1];
             while (!cancelToken)
             {
                 bool logEntry = false;
@@ -187,7 +185,11 @@ namespace StressTest
                     stopWatch.Start();
                     var tempEntries = results.Skip(currentCount).ToList();
                     float callsMade = results.Count - currentCount;
+                    if (callsMade == 0)
+                        callsMade = 1;
                     currentCount = results.Count;
+                    if (seconds <= 0)
+                        seconds = 1;
                     decimal callsPerSecond = (decimal)callsMade / seconds;
                     decimal avg = tempEntries.Average(t => t.CallTime);
                     decimal success = (decimal)((float)tempEntries.Count(t => t.StatusCode < 300 || (exclude404 ? t.StatusCode == 404 : t.StatusCode == 1)) / (float)tempEntries.Count() * 100);
@@ -196,13 +198,13 @@ namespace StressTest
                 if (this.payload == null || this.payload.Length == 0)
                 {
                     // send query
-                    var result = CallAPIQuery(endPoint, this.query[entryThatIsend], token);
+                    var result = CallAPIQuery(client,endPoint, this.query[entryThatIsend], token);
                     results.Add(result);
                 }
                 else
                 {
                     // send object
-                    var result = CallAPIPayload(endPoint, this.payload[entryThatIsend], token);
+                    var result = CallAPIPayload(client,endPoint, this.payload[entryThatIsend], token);
                     results.Add(result);
                 }
             }
