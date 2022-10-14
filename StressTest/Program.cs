@@ -18,6 +18,7 @@ if (settings.Paralell)
     foreach (var item in settings.Tests)
     {
         TestRunner trunner = new TestRunner();
+        trunner.exclude404 = settings.Exclude404;
         runnerList.Add(trunner);
         ThreadPool.QueueUserWorkItem(trunner.QueueWork, new object[] { item, CancelWork, settings.Threads });
     }
@@ -35,6 +36,7 @@ else
     {
         CancelWork = false;
         TestRunner trunner = new TestRunner();
+        trunner.exclude404 = settings.Exclude404;
         runnerList.Add(trunner);
         ThreadPool.QueueUserWorkItem(trunner.QueueWork, new object[] { item, CancelWork, settings.Threads });
         Console.WriteLine("Press any key to conclude the test.");
@@ -48,5 +50,5 @@ else
 
 foreach(var runner in runnerList)
 {
-    Console.WriteLine($"{runner.endPoint} was ran {runner.CallTimes} times for {runner.TotalRunTime.TotalMinutes} Minutes and had {runner.PercentSuccess.ToString("##0.00")}% success with average {runner.AverageTime} ms average call time.");
+    Console.WriteLine($"{runner.endPoint} was ran {runner.CallTimes} times for {runner.TotalRunTime.TotalMinutes.ToString("##0.00")} Minutes and had {runner.PercentSuccess.ToString("##0.00")}% success with average {runner.AverageTime} ms average call time.");
 }

@@ -14,7 +14,7 @@ namespace StressTest
         public List<ApiResult> results = new List<ApiResult>();
 
         public decimal AverageTime => results.Average(t => t.CallTime);
-        public decimal PercentSuccess => (decimal)((float)results.Count(t => t.StatusCode < 300) / (float)results.Count() * 100);
+        public decimal PercentSuccess => (decimal)((float)results.Count(t => t.StatusCode < 300 || (exclude404 ? t.StatusCode == 404 : t.StatusCode == 1)) / (float)results.Count() * 100);
 
         public TimeSpan TotalRunTime = TimeSpan.Zero;
 
@@ -29,6 +29,7 @@ namespace StressTest
 
         private object EntryLock = new object();
 
+        internal bool exclude404 { get; set; }
         public TestRunner()
         {
             client = new HttpClient();

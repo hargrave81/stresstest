@@ -15,6 +15,9 @@ namespace StressTest
         public int Threads { get; set; }
         [JsonPropertyName("paralell")]
         public bool Paralell { get; set; }
+
+        [JsonPropertyName("exclude404")]
+        public bool Exclude404 { get; set; }
     }
     public class Test
     {
