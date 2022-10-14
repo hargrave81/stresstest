@@ -191,7 +191,7 @@ namespace StressTest
                     decimal callsPerSecond = (decimal)callsMade / seconds;
                     decimal avg = tempEntries.Average(t => t.CallTime);
                     decimal success = (decimal)((float)tempEntries.Count(t => t.StatusCode < 300 || (exclude404 ? t.StatusCode == 404 : t.StatusCode == 1)) / (float)tempEntries.Count() * 100);
-                    Console.WriteLine($"Current Progress '...{endPoint.Substring(endPoint.Length - 20)}' - {avg.ToString("##0.00")}ms average   {success.ToString("##0.00")}% success with {callsPerSecond} calls/s");
+                    Console.WriteLine($"Current Progress '...{endPoint.Substring(endPoint.Length - 20)}' - {avg.ToString("##0.00")}ms average   {success.ToString("##0.00")}% success with {callsPerSecond.ToString("##0")} calls/s");
                 }
                 if (this.payload == null || this.payload.Length == 0)
                 {
