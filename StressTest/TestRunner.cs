@@ -27,12 +27,16 @@ namespace StressTest
         
         private int entryToSend = 0;
 
+        private int currentCount = 0;
+
         private object EntryLock = new object();
 
+        private System.Diagnostics.Stopwatch stopWatch;
         internal bool exclude404 { get; set; }
         public TestRunner()
         {
             client = new HttpClient();
+            stopWatch = new System.Diagnostics.Stopwatch();
         }
 
         public ApiResult CallAPIQuery(string endPoint, string Query, string token)
@@ -143,6 +147,7 @@ namespace StressTest
         {
             var timer = new System.Diagnostics.Stopwatch();
             timer.Start();
+            stopWatch.Start();
             for (int thread = 0; thread < threads;thread ++)
             {
                 ThreadPool.QueueUserWorkItem(BackgroundTask, cancellationToken);
@@ -152,6 +157,7 @@ namespace StressTest
                 System.Threading.Thread.Sleep(10);
                 TotalRunTime = new TimeSpan(timer.ElapsedTicks);
             }
+            stopWatch.Stop();
             timer.Stop();
             
         }
@@ -161,6 +167,7 @@ namespace StressTest
             bool cancelToken = (bool)stateInfo;
             while (!cancelToken)
             {
+                bool logEntry = false;
                 int entryThatIsend = 0;
                 lock (EntryLock)
                 {
@@ -169,9 +176,23 @@ namespace StressTest
                     if(entryToSend >= (this.payload == null ? this.query.Length : this.payload.Length))
                     {
                         entryToSend = 0;
+                        logEntry = true;
                     }
                 }
-
+                if(logEntry)
+                {
+                    stopWatch.Stop();
+                    decimal seconds = stopWatch.ElapsedMilliseconds / 1000;
+                    stopWatch.Reset();
+                    stopWatch.Start();
+                    var tempEntries = results.Skip(currentCount).ToList();
+                    float callsMade = results.Count - currentCount;
+                    currentCount = results.Count;
+                    decimal callsPerSecond = (decimal)callsMade / seconds;
+                    decimal avg = tempEntries.Average(t => t.CallTime);
+                    decimal success = (decimal)((float)tempEntries.Count(t => t.StatusCode < 300 || (exclude404 ? t.StatusCode == 404 : t.StatusCode == 1)) / (float)tempEntries.Count() * 100);
+                    Console.WriteLine($"Current Progress '...{endPoint.Substring(endPoint.Length - 20)}' - {avg.ToString("##0.00")}ms average   {success.ToString("##0.00")}% success with {callsPerSecond} calls/s");
+                }
                 if (this.payload == null || this.payload.Length == 0)
                 {
                     // send query
